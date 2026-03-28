@@ -1,6 +1,6 @@
 {
-  "name": "Money Tracker",
-  "short_name": "MoneyTracker",
+  "name": "Sarkia",
+  "short_name": "Sarkia",
   "description": "Shared financial records with realtime balances, transactions, and collaboration.",
   "start_url": "/",
   "scope": "/",

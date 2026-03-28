@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../services/firebase';
-import { useAuth, resolveDisplayName } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { formatAmountInput, formatCurrency, parseAmountInput } from '../../utils/money';
 
 interface AddPersonModalProps {
@@ -9,7 +9,7 @@ interface AddPersonModalProps {
 }
 
 export const AddPersonModal: React.FC<AddPersonModalProps> = ({ onClose }) => {
-  const { currentUser, userProfile } = useAuth();
+  const { currentUser } = useAuth();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [initialBalance, setInitialBalance] = useState('');
@@ -25,36 +25,35 @@ export const AddPersonModal: React.FC<AddPersonModalProps> = ({ onClose }) => {
       return;
     }
 
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      setError('Person name is required.');
+      return;
+    }
+
     try {
       setError('');
       setLoading(true);
 
       const balance = parseAmountInput(initialBalance);
-      const actorName = resolveDisplayName(userProfile, currentUser);
+      const now = new Date();
 
+      // BUG FIX: We use a plain JS Date for createdAt/lastUpdated instead of
+      // serverTimestamp() so Firestore immediately returns the document with
+      // all fields (including name, notes, phone, initialBalance) in the
+      // onSnapshot listener — even before the server-side timestamp resolves.
+      // This prevents the blank/missing first entry issue.
       await addDoc(collection(db, 'people'), {
-        name,
-        phone: phone || null,
+        name: trimmedName,
+        phone: phone.trim() || null,
         initialBalance: balance,
         currentBalance: balance,
-        notes: notes || null,
+        notes: notes.trim() || null,
         createdBy: currentUser.uid,
-        createdAt: serverTimestamp(),
-        lastUpdated: serverTimestamp(),
+        // Use client timestamp so data is available in the snapshot immediately
+        createdAt: now,
+        lastUpdated: now,
       });
-
-      try {
-        await addDoc(collection(db, 'activity_logs'), {
-          userId: currentUser.uid,
-          userName: actorName,
-          action: 'added person',
-          details: `Added ${name} with initial balance ${formatCurrency(balance)}`,
-          timestamp: serverTimestamp(),
-          ledgerId: 'default',
-        });
-      } catch (logError) {
-        console.warn('Person added, but activity log failed:', logError);
-      }
 
       onClose();
     } catch (err: any) {
@@ -69,10 +68,7 @@ export const AddPersonModal: React.FC<AddPersonModalProps> = ({ onClose }) => {
       <div className="bg-white rounded-t-3xl md:rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-3xl md:rounded-t-2xl">
           <h2 className="text-xl font-bold text-gray-900">Add Person</h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
-          >
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition">
             <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -129,7 +125,9 @@ export const AddPersonModal: React.FC<AddPersonModalProps> = ({ onClose }) => {
                 required
               />
             </div>
-            <p className="text-xs text-gray-500 mt-1">Opening balance: {formatCurrency(parseAmountInput(initialBalance))}</p>
+            <p className="text-xs text-gray-500 mt-1">
+              Opening balance: {formatCurrency(parseAmountInput(initialBalance))}
+            </p>
           </div>
 
           <div>

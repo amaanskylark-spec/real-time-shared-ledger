@@ -10,7 +10,7 @@ import {
 
 interface PersonCardProps {
   person: Person;
-  lastTransaction?: Transaction;
+  lastTransaction?: Transaction | null;
   onClick: () => void;
   onDelete: () => void;
 }
@@ -45,28 +45,52 @@ export const PersonCard: React.FC<PersonCardProps> = ({ person, lastTransaction,
               )}
             </div>
 
-            {lastTransaction && (
-              <p className="text-sm text-gray-600 break-words">
-                Last: {TRANSACTION_TYPE_LABELS[lastTransaction.type]} {formatCurrency(lastTransaction.amount)}
-                {lastTransaction.comment && <span className="text-gray-400"> • {lastTransaction.comment}</span>}
+            {/* Phone */}
+            {person.phone && (
+              <p className="text-xs text-gray-500 mb-1 flex items-center gap-1">
+                <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+                {person.phone}
               </p>
             )}
 
+            {/* Last transaction */}
+            {lastTransaction && (
+              <p className="text-sm text-gray-600 break-words">
+                Last: {TRANSACTION_TYPE_LABELS[lastTransaction.type]} {formatCurrency(lastTransaction.amount)}
+                {(lastTransaction.description || lastTransaction.comment) && (
+                  <span className="text-gray-400"> • {lastTransaction.description || lastTransaction.comment}</span>
+                )}
+              </p>
+            )}
+
+            {/* Notes */}
             {person.notes && (
-              <p className="text-xs text-gray-500 mt-1 break-words">{person.notes}</p>
+              <p className="text-xs text-gray-500 mt-1 break-words flex items-start gap-1">
+                <svg className="w-3 h-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                {person.notes}
+              </p>
+            )}
+
+            {/* Comment/description */}
+            {person.comment && (
+              <p className="text-xs text-gray-500 mt-1 break-words flex items-start gap-1">
+                <svg className="w-3 h-3 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                </svg>
+                {person.comment}
+              </p>
             )}
           </div>
         </div>
 
         <button
           type="button"
-          onClick={(event) => {
-            event.stopPropagation();
-            onDelete();
-          }}
+          onClick={(e) => { e.stopPropagation(); onDelete(); }}
           className="inline-flex flex-shrink-0 items-center justify-center rounded-xl border border-red-200 bg-red-50 p-2.5 text-red-700 transition hover:bg-red-100 sm:px-3 sm:py-2"
-          title={`Delete ${person.name}`}
-          aria-label={`Delete ${person.name}`}
         >
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3M4 7h16" />
@@ -76,7 +100,7 @@ export const PersonCard: React.FC<PersonCardProps> = ({ person, lastTransaction,
       </div>
 
       <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0">
+        <div>
           <div className={`inline-flex items-center px-3 py-1.5 rounded-lg ${balanceMeta.cardBg} border ${balanceMeta.cardBorder}`}>
             <span className={`text-lg font-bold ${balanceMeta.cardText}`}>
               {formatSignedCurrency(person.currentBalance)}
@@ -89,10 +113,8 @@ export const PersonCard: React.FC<PersonCardProps> = ({ person, lastTransaction,
 
         <div className="flex items-center justify-between sm:justify-end gap-3 text-xs text-gray-500">
           <span>
-            Updated {new Date(person.lastUpdated).toLocaleDateString('en-IN', {
-              day: 'numeric',
-              month: 'short',
-              year: 'numeric'
+            Added {new Date(person.createdAt).toLocaleDateString('en-IN', {
+              day: 'numeric', month: 'short', year: 'numeric',
             })}
           </span>
           <span className="inline-flex items-center gap-1 text-emerald-700 font-medium">
